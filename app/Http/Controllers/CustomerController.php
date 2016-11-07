@@ -2,15 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests;
-use App\Http\Controllers\Controller;
-
 use App\Customer;
-use Illuminate\Http\Request;
+use App\Http\Requests\CustomerRequest;
 use Session;
 
 class CustomerController extends Controller
 {
+    /**
+     * @var Customer
+     */
+    private $customerModel;
+
+    public function __construct(Customer $customer)
+    {
+        $this->customerModel = $customer;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -18,7 +25,7 @@ class CustomerController extends Controller
      */
     public function index()
     {
-        $customer = Customer::paginate(25);
+        $customer = $this->customerModel->paginate(25);
 
         return view('customer.index', compact('customer'));
     }
@@ -36,20 +43,20 @@ class CustomerController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
+     * @param \App\Http\Requests\CustomerRequest $request
      *
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
-    public function store(Request $request)
+    public function store(CustomerRequest $request)
     {
         
         $requestData = $request->all();
         
-        Customer::create($requestData);
+        $this->customerModel->create($requestData);
 
-        Session::flash('flash_message', 'Customer added!');
+        Session::flash('success', trans('customer.created'));
 
-        return redirect('customer');
+        return redirect()->route('customer.index');
     }
 
     /**
@@ -61,7 +68,7 @@ class CustomerController extends Controller
      */
     public function show($id)
     {
-        $customer = Customer::findOrFail($id);
+        $customer = $this->customerModel->findOrFail($id);
 
         return view('customer.show', compact('customer'));
     }
@@ -75,7 +82,7 @@ class CustomerController extends Controller
      */
     public function edit($id)
     {
-        $customer = Customer::findOrFail($id);
+        $customer = $this->customerModel->findOrFail($id);
 
         return view('customer.edit', compact('customer'));
     }
@@ -84,21 +91,21 @@ class CustomerController extends Controller
      * Update the specified resource in storage.
      *
      * @param  int  $id
-     * @param \Illuminate\Http\Request $request
+     * @param \App\Http\Requests\CustomerRequest $request
      *
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
-    public function update($id, Request $request)
+    public function update($id, CustomerRequest $request)
     {
         
         $requestData = $request->all();
         
-        $customer = Customer::findOrFail($id);
+        $customer = $this->customerModel->findOrFail($id);
         $customer->update($requestData);
 
-        Session::flash('flash_message', 'Customer updated!');
+        Session::flash('success', trans('customer.updated'));
 
-        return redirect('customer');
+        return redirect()->route('customer.index');
     }
 
     /**
@@ -110,10 +117,12 @@ class CustomerController extends Controller
      */
     public function destroy($id)
     {
-        Customer::destroy($id);
+        $customer = $this->customerModel->findOrFail($id);
+        $fullName = $customer->first_name . ' ' . $customer->last_name;
+        $customer->delete($id);
 
-        Session::flash('flash_message', 'Customer deleted!');
+        Session::flash('success', trans('customer.deleted', ['customerName' => $fullName]));
 
-        return redirect('customer');
+        return redirect()->route('customer.index');
     }
 }

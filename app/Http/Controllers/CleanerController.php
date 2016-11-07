@@ -2,15 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests;
-use App\Http\Controllers\Controller;
-
+use App\City;
 use App\Cleaner;
-use Illuminate\Http\Request;
+use App\Http\Requests\CleanerRequest;
 use Session;
 
 class CleanerController extends Controller
 {
+
+    /**
+     * @var Cleaner
+     */
+    private $cleanerModel;
+
+    public function __construct(Cleaner $cleaner)
+    {
+        $this->cleanerModel = $cleaner;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -18,7 +27,7 @@ class CleanerController extends Controller
      */
     public function index()
     {
-        $cleaner = Cleaner::paginate(25);
+        $cleaner = $this->cleanerModel->paginate(25);
 
         return view('cleaner.index', compact('cleaner'));
     }
@@ -26,30 +35,38 @@ class CleanerController extends Controller
     /**
      * Show the form for creating a new resource.
      *
+     * @param \App\City $cityModel
+     *
      * @return \Illuminate\View\View
      */
-    public function create()
+    public function create(City $cityModel)
     {
-        return view('cleaner.create');
+        $cities = $cityModel->all();
+        return view('cleaner.create', compact('cities'));
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
+     * @param \App\Http\Requests\CleanerRequest $request
      *
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
-    public function store(Request $request)
+    public function store(CleanerRequest $request)
     {
-        
         $requestData = $request->all();
-        
-        Cleaner::create($requestData);
+        $cities = [];
 
-        Session::flash('flash_message', 'Cleaner added!');
+        $cleaner = $this->cleanerModel->create($requestData);
 
-        return redirect('cleaner');
+        if ($request->has('cities')) {
+            $cities = $request->get('cities');
+        }
+        $cleaner->cities()->sync($cities);
+
+        Session::flash('success', trans('cleaner.created'));
+
+        return redirect()->route('cleaner.index');
     }
 
     /**
@@ -61,44 +78,51 @@ class CleanerController extends Controller
      */
     public function show($id)
     {
-        $cleaner = Cleaner::findOrFail($id);
-
-        return view('cleaner.show', compact('cleaner'));
+        $cleaner = $this->cleanerModel->findOrFail($id);
+        $cities = $cleaner->cities()->get();
+        return view('cleaner.show', compact('cleaner', 'cities'));
     }
 
     /**
      * Show the form for editing the specified resource.
      *
      * @param  int  $id
+     * @param \App\City $cityModel
      *
      * @return \Illuminate\View\View
      */
-    public function edit($id)
+    public function edit($id, City $cityModel)
     {
-        $cleaner = Cleaner::findOrFail($id);
-
-        return view('cleaner.edit', compact('cleaner'));
+        $cleaner = $this->cleanerModel->findOrFail($id);
+        $cities = $cityModel->all();
+        return view('cleaner.edit', compact('cleaner', 'cities'));
     }
 
     /**
      * Update the specified resource in storage.
      *
      * @param  int  $id
-     * @param \Illuminate\Http\Request $request
+     * @param \App\Http\Requests\CleanerRequest
      *
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
-    public function update($id, Request $request)
+    public function update($id, CleanerRequest $request)
     {
         
         $requestData = $request->all();
         
-        $cleaner = Cleaner::findOrFail($id);
+        $cleaner = $this->cleanerModel->findOrFail($id);
         $cleaner->update($requestData);
 
-        Session::flash('flash_message', 'Cleaner updated!');
+        $cities = [];
+        if ($request->has('cities')) {
+            $cities = $request->get('cities');
+        }
+        $cleaner->cities()->sync($cities);
 
-        return redirect('cleaner');
+        Session::flash('success', trans('cleaner.updated'));
+
+        return redirect()->route('cleaner.index');
     }
 
     /**
@@ -110,10 +134,12 @@ class CleanerController extends Controller
      */
     public function destroy($id)
     {
-        Cleaner::destroy($id);
+        $cleaner = $this->cleanerModel->findOrFail($id);
+        $fullName = $cleaner->first_name . ' ' . $cleaner->last_name;
+        $cleaner->delete($id);
 
-        Session::flash('flash_message', 'Cleaner deleted!');
+        Session::flash('success', trans('cleaner.deleted', ['cleanerName' => $fullName]));
 
-        return redirect('cleaner');
+        return redirect()->route('cleaner.index');
     }
 }

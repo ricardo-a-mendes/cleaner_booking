@@ -1,50 +1,69 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
+    <div class="container">
 
-    <h1>Create New Booking</h1>
-    <hr/>
+        <h1>Book Now</h1>
 
-    {!! Form::open(['url' => '/booking', 'class' => 'form-horizontal', 'files' => true]) !!}
+        {!! Form::model($booking, [
+            'method' => 'POST',
+            'url' => '/book',
+            'class' => 'form-horizontal',
+            'files' => true
+        ]) !!}
 
-                    <div class="form-group {{ $errors->has('date') ? 'has-error' : ''}}">
-                {!! Form::label('date', 'Date', ['class' => 'col-sm-3 control-label']) !!}
-                <div class="col-sm-6">
-                    {!! Form::date('date', null, ['class' => 'form-control']) !!}
-                    {!! $errors->first('date', '<p class="help-block">:message</p>') !!}
-                </div>
+
+        <div class="form-group {{ $errors->has('first_name') ? 'has-error' : ''}}">
+            {!! Form::label('first_name', 'First Name', ['class' => 'col-sm-3 control-label']) !!}
+            <div class="col-sm-6">
+                {!! Form::text('first_name', null, ['class' => 'form-control']) !!}
+                {!! $errors->first('first_name', '<p class="help-block">:message</p>') !!}
             </div>
-            <div class="form-group {{ $errors->has('customer_id') ? 'has-error' : ''}}">
-                {!! Form::label('customer_id', 'Customer Id', ['class' => 'col-sm-3 control-label']) !!}
-                <div class="col-sm-6">
-                    {!! Form::number('customer_id', null, ['class' => 'form-control']) !!}
-                    {!! $errors->first('customer_id', '<p class="help-block">:message</p>') !!}
-                </div>
+        </div>
+        <div class="form-group {{ $errors->has('last_name') ? 'has-error' : ''}}">
+            {!! Form::label('last_name', 'Last Name', ['class' => 'col-sm-3 control-label']) !!}
+            <div class="col-sm-6">
+                {!! Form::text('last_name', null, ['class' => 'form-control']) !!}
+                {!! $errors->first('last_name', '<p class="help-block">:message</p>') !!}
             </div>
-            <div class="form-group {{ $errors->has('cleaner_id') ? 'has-error' : ''}}">
-                {!! Form::label('cleaner_id', 'Cleaner Id', ['class' => 'col-sm-3 control-label']) !!}
-                <div class="col-sm-6">
-                    {!! Form::number('cleaner_id', null, ['class' => 'form-control']) !!}
-                    {!! $errors->first('cleaner_id', '<p class="help-block">:message</p>') !!}
-                </div>
+        </div>
+        <div class="form-group {{ $errors->has('phone_number') ? 'has-error' : ''}}">
+            {!! Form::label('phone_number', 'Phone Number', ['class' => 'col-sm-3 control-label']) !!}
+            <div class="col-sm-6">
+                <input type="tel" class="form-control" name="phone_number" placeholder="12-345-6789" pattern="\d{2}[\-]\d{3}[\-]\d{4}">
+                {!! $errors->first('phone_number', '<p class="help-block">:message</p>') !!}
             </div>
+        </div>
+        <div class="form-group {{ $errors->has('city') ? 'has-error' : ''}}">
+            {!! Form::label('city', 'City', ['class' => 'col-sm-3 control-label']) !!}
+            <div class="col-sm-6">
+                {!! Form::select('city', $cities, null, ['class' => 'form-control']) !!}
+                {!! $errors->first('city', '<p class="help-block">:message</p>') !!}
+            </div>
+        </div>
+        <div class="form-group {{ $errors->has('date') ? 'has-error' : ''}}">
+            {!! Form::label('date', 'Date', ['class' => 'col-sm-3 control-label']) !!}
+            <div class="col-sm-6">
+                <input type="datetime-local" class="form-control" name="book_date">
+                {!! $errors->first('date', '<p class="help-block">:message</p>') !!}
+            </div>
+        </div>
 
 
         <div class="form-group">
             <div class="col-sm-offset-3 col-sm-3">
-                {!! Form::submit('Create', ['class' => 'btn btn-primary form-control']) !!}
+                {!! Form::submit('Book', ['class' => 'btn btn-primary form-control']) !!}
             </div>
         </div>
-    {!! Form::close() !!}
+        {!! Form::close() !!}
 
-    @if ($errors->any())
-        <ul class="alert alert-danger">
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    @endif
+        @if ($errors->any())
+            <ul class="alert alert-danger">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        @endif
 
-</div>
+    </div>
 @endsection

@@ -2,15 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests;
-use App\Http\Controllers\Controller;
-
 use App\Booking;
-use Illuminate\Http\Request;
+use App\City;
+use App\Http\Requests\BookingCreateRequest;
+use App\Http\Requests\BookingRequest;
+use App\Http\Requests\BookingUpdateRequest;
+use Carbon\Carbon;
 use Session;
 
 class BookingController extends Controller
 {
+    /**
+     * @var Booking
+     */
+    private $bookingModel;
+
+    public function __construct(Booking $booking)
+    {
+        $this->bookingModel = $booking;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -18,7 +29,7 @@ class BookingController extends Controller
      */
     public function index()
     {
-        $booking = Booking::paginate(25);
+        $booking = $this->bookingModel->paginate(25);
 
         return view('booking.index', compact('booking'));
     }
@@ -30,26 +41,54 @@ class BookingController extends Controller
      */
     public function create()
     {
-        return view('booking.create');
+        return redirect()->route('home');
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
+     * @param \App\Http\Requests\BookingCreateRequest $request
+     * @param Customer $customer
+     * @param Cleaner $cleaner
+     * @param City $city
      *
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
-    public function store(Request $request)
+    public function store(BookingCreateRequest $request, Customer $customer, Cleaner $cleaner, City $city)
     {
-        
-        $requestData = $request->all();
-        
-        Booking::create($requestData);
+        $bookDate = Carbon::parse($request->get('book_date'));
 
-        Session::flash('flash_message', 'Booking added!');
+        $currentCity = $city->findOrFail($request->get('city'));
 
-        return redirect('booking');
+        $daoCustomer = $customer->where('phone_number', '=', $request->get('phone_number'));
+        if ($daoCustomer->count() > 0)
+            $currentCustomer = $daoCustomer->first();
+        else
+            $currentCustomer = Customer::create([
+                'first_name' => $request->get('first_name'),
+                'last_name' => $request->get('last_name'),
+                'phone_number' => $request->get('phone_number')
+            ]);
+
+        $daoCleaner = $cleaner->join('city_cleaner', 'cleaners.id', '=', 'city_cleaner.cleaner_id')
+            ->join('cities', 'city_cleaner.city_id', '=', 'cities.id')
+            ->where('cities.id', '=', $currentCity->id)
+            ->select('cleaners.*')
+            ->first();
+
+        if (is_null($daoCleaner))
+            Session::flash('error', 'No Cleaner Found!');
+        else
+        {
+            $booking = Booking::create([
+                'date' => $bookDate->format('Y-m-d H:i:s'),
+                'customer_id' => $currentCustomer->id,
+                'cleaner_id' => $daoCleaner->id
+            ]);
+            Session::flash('success', "Booked to {$bookDate->format('Y-m-d H:i:s')} !");
+        }
+
+        redirect('home');
     }
 
     /**
@@ -61,7 +100,7 @@ class BookingController extends Controller
      */
     public function show($id)
     {
-        $booking = Booking::findOrFail($id);
+        $booking = $this->bookingModel->findOrFail($id);
 
         return view('booking.show', compact('booking'));
     }
@@ -70,33 +109,35 @@ class BookingController extends Controller
      * Show the form for editing the specified resource.
      *
      * @param  int  $id
+     * @param  \App\City $cityModel
      *
      * @return \Illuminate\View\View
      */
-    public function edit($id)
+    public function edit($id, City $cityModel)
     {
-        $booking = Booking::findOrFail($id);
+        $booking = $this->bookingModel->findOrFail($id);
+        $cities = $cityModel->pluck('name', 'id');
 
-        return view('booking.edit', compact('booking'));
+        return view('booking.edit', compact('booking', 'cities'));
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  int  $id
-     * @param \Illuminate\Http\Request $request
+     * @param  int $id
+     * @param BookingUpdateRequest $request
+     * @param Carbon $carbon
      *
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
-    public function update($id, Request $request)
+    public function update($id, BookingUpdateRequest $request, Carbon $carbon)
     {
-        
-        $requestData = $request->all();
-        
-        $booking = Booking::findOrFail($id);
-        $booking->update($requestData);
+        $booking = $this->bookingModel->findOrFail($id);
+        //dd($request->get('book_date'));
+        $date = $carbon->parse($request->get('book_date'))->format('Y-m-d H:i:s');
+        $booking->update(compact('date'));
 
-        Session::flash('flash_message', 'Booking updated!');
+        Session::flash('success', 'Booking updated!');
 
         return redirect('booking');
     }
@@ -110,7 +151,7 @@ class BookingController extends Controller
      */
     public function destroy($id)
     {
-        Booking::destroy($id);
+        $this->bookingModel->destroy($id);
 
         Session::flash('flash_message', 'Booking deleted!');
 
